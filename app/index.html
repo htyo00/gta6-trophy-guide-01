@@ -1,147 +1,133 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" data-theme="paper">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sunset Platinum — GTA 6 Trophy Guide &amp; Tracker</title>
-<meta name="description" content="A complete offline guide and tracker for all 55 Grand Theft Auto VI trophies on PlayStation 5: roadmap, missables, cited guides and saved progress.">
+<title>Sunset Platinum — GTA VI Trophy Guide</title>
+<meta name="description" content="A cited, spoiler-safe trophy guide for Grand Theft Auto VI: all 55 trophies, numbered steps with sources, a 7-stage roadmap and an honest missable watch list.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="topbar">
-  <h1><span class="sun">Sunset</span> Platinum</h1>
-  <p class="tagline">The GTA 6 trophy guide &amp; tracker — all 55 trophies, roadmap to platinum, missables flagged, every guide cited.</p>
-  <button id="theme-toggle" type="button">Night theme</button>
+<header class="site-header">
+  <div class="header-text">
+    <h1>Sunset Platinum</h1>
+    <p class="tagline">Every GTA VI trophy, with the receipts. 55 trophies · 1 playthrough · about 200 hours · 1 possibly missable.</p>
+  </div>
+  <button type="button" class="btn" id="theme-toggle" data-action="theme-toggle">Night theme</button>
 </header>
 
-<div class="progress-wrap" aria-live="polite">
+<section class="progress" aria-label="Your progress">
   <div class="progress-line">
-    <strong id="progress-text">0 / 55 trophies earned — 0% to platinum</strong>
-    <span class="muted">Progress saves in this browser (localStorage).</span>
+    <strong id="progress-text">0 of 55 trophies earned</strong>
+    <span id="grade-counts"></span>
   </div>
-  <div class="progress-bar" role="progressbar" aria-label="Progress to platinum"><div class="progress-fill" id="progress-fill"></div></div>
-  <div class="grade-counts" id="grade-counts"></div>
-</div>
+  <div class="bar bar-big"><span id="progress-fill" style="width:0%"></span></div>
+</section>
 
-<nav class="tabs" aria-label="Guide sections">
-  <button type="button" data-tab="tracker" class="active" aria-pressed="true">Tracker</button>
-  <button type="button" data-tab="roadmap" aria-pressed="false">Roadmap</button>
-  <button type="button" data-tab="missables" aria-pressed="false">Missables</button>
-  <button type="button" data-tab="planner" aria-pressed="false">Next up</button>
-  <button type="button" data-tab="settings" aria-pressed="false">Settings &amp; save</button>
+<div class="audit-strip" id="audit-strip" aria-label="Audit strip — every figure computed from the guide data"></div>
+
+<nav class="tabs" role="tablist" aria-label="Guide sections">
+  <button type="button" role="tab" data-action="tab" data-tab="tracker">Tracker</button>
+  <button type="button" role="tab" data-action="tab" data-tab="roadmap">Roadmap</button>
+  <button type="button" role="tab" data-action="tab" data-tab="missables">Missables</button>
+  <button type="button" role="tab" data-action="tab" data-tab="planner">Next up</button>
+  <button type="button" role="tab" data-action="tab" data-tab="sources">Sources</button>
+  <button type="button" role="tab" data-action="tab" data-tab="settings">Settings &amp; save</button>
 </nav>
 
-<div class="filters">
-  <input type="search" id="search" placeholder="Search trophies, e.g. stunt, vault, fishing…" aria-label="Search trophies">
-  <select id="kind-filter" aria-label="Filter by kind">
-    <option value="all">All kinds</option>
-    <option value="story">Story</option>
-    <option value="missable">Missable</option>
-    <option value="collectibles">Collectibles</option>
-    <option value="activities">Activities</option>
-    <option value="online">Online</option>
-  </select>
-  <select id="grade-filter" aria-label="Filter by grade">
-    <option value="all">All grades</option>
-    <option value="platinum">Platinum</option>
-    <option value="gold">Gold</option>
-    <option value="silver">Silver</option>
-    <option value="bronze">Bronze</option>
-  </select>
-  <select id="only-filter" aria-label="Show only">
-    <option value="all">Show all</option>
-    <option value="missing">Not earned yet</option>
-    <option value="earned">Earned</option>
-    <option value="missable">Missable only</option>
-  </select>
-  <label><input type="checkbox" id="spoiler-toggle" checked> Hide story spoilers</label>
-  <span class="filter-note" id="result-count"></span>
+<div class="filters" aria-label="Filters">
+  <label>Search <input type="search" id="filter-search" placeholder="Trophy name or keyword…"></label>
+  <label>Kind
+    <select id="filter-kind">
+      <option value="all">All kinds</option>
+      <option value="story">Story</option>
+      <option value="activities">Activities</option>
+      <option value="collectibles">Collectibles</option>
+    </select>
+  </label>
+  <label>Grade
+    <select id="filter-grade">
+      <option value="all">All grades</option>
+      <option value="platinum">Platinum</option>
+      <option value="gold">Gold</option>
+      <option value="silver">Silver</option>
+      <option value="bronze">Bronze</option>
+    </select>
+  </label>
+  <label>Show
+    <select id="filter-only">
+      <option value="all">All trophies</option>
+      <option value="unearned">Unearned only</option>
+      <option value="earned">Earned only</option>
+      <option value="watch">Possibly / disputed / watch</option>
+    </select>
+  </label>
+  <label class="spoiler-label"><input type="checkbox" id="filter-spoiler" checked> Hide spoilers (28 hidden trophies)</label>
+  <span id="result-count" class="result-count"></span>
 </div>
 
 <main>
-  <section data-view="tracker">
-    <div class="layout">
-      <div>
-        <p class="muted" id="spoiler-note">Spoilers on: story trophy names and descriptions stay hidden until earned.</p>
-        <ul class="trophy-list" id="trophy-list"></ul>
-      </div>
-      <aside class="panel detail" id="detail" aria-live="polite"></aside>
+  <section id="tab-tracker" aria-label="Trophy tracker">
+    <div class="tracker-layout">
+      <div class="trophy-list" id="trophy-list" role="list"></div>
+      <aside class="trophy-detail" id="trophy-detail" aria-label="Trophy detail"></aside>
     </div>
   </section>
 
-  <section data-view="roadmap" class="hidden">
-    <div class="layout">
-      <div class="panel">
-        <h2>Roadmap to platinum</h2>
-        <p>Six stages, built from the official descriptions: story first, strands second, activities third, the one-shot feats before cleanup, then the long counts, then 100% Completion and the platinum. Counts come from the PSN trophy list (Exophase / PSNProfiles).</p>
-        <div id="roadmap-list"></div>
-      </div>
-      <aside class="panel">
-        <h2>How to read this guide</h2>
-        <p>Every trophy shows its official name, description and grade exactly as PlayStation publishes them, plus a guide in our own words and the sources beside it.</p>
-        <p>A guide that says a step “has not been checked in the game” means exactly that: the official description does not name it, and no sourced guide we cite confirms it. We would rather say so than invent a location or a mission name.</p>
-        <p>No online trophies are listed: the official list of 55 holds none under the online kind, so the Online filter is empty by design.</p>
+  <section id="tab-roadmap" aria-label="Roadmap" hidden>
+    <div class="roadmap-layout">
+      <div id="roadmap-list"></div>
+      <aside class="roadmap-side">
+        <h3>How to read this roadmap</h3>
+        <p>Work the stages in order, but do the side content as it appears — most questlines and activities open during the story and are easier to finish on the spot than to hunt down later. Every stage shows how many of its trophies you have earned, which trophies it holds, and which sources its steps cite.</p>
+        <h3>Missable watch list</h3>
+        <p>Only one trophy is possibly missable: <strong>Positive Mental Attitude</strong> — do its Chapter 1 balcony meditation before Chapter 1 ends. Two more are disputed (#25 Strangers &amp; Freaks, #37 Catch Me If You Can) and six story trophies are on watch for unverified one-time-window claims. The full list, with what the sources confirm and what they do not, is on the <a href="#missables" data-action="tab" data-tab="missables">Missables</a> tab.</p>
+        <h3>Ground rules</h3>
+        <ul>
+          <li>No mission replay and no New Game+. There are 15 manual save slots plus 1 autosave — keep a save at the start and end of each chapter (10 saves), and one before the final mission.</li>
+          <li>Cheats disable trophies and saving on that save. Keep your trophy run cheat-free.</li>
+          <li>No difficulty setting, no mission medals, no online trophies. One playthrough is enough.</li>
+          <li>Free roam continues after the story, and everything on the 100% checklist stays available.</li>
+          <li>The Irredeemable criminal profile is permanent — avoid it. Jason and Lucia's relationship status does not affect any trophy.</li>
+        </ul>
+        <h3>How this roadmap was built</h3>
+        <p>Seven stages, ordered by chapter and then by grind. The stage order follows the guides' own three-step roadmap (story 60–80 hours, 100% checklist about 100 hours, Strangers &amp; Freaks cleanup about 10 hours), split by chapter so the missable step lands where it belongs: Stage 1.</p>
       </aside>
     </div>
   </section>
 
-  <section data-view="missables" class="hidden">
-    <div class="layout">
-      <div class="panel">
-        <h2>Missable trophies</h2>
-        <div id="missable-list"></div>
-      </div>
-      <aside class="panel">
-        <h2>Why these are flagged</h2>
-        <p>A trophy is flagged missable when its official description describes a single clean attempt: one robbery without being seen, one escape, one use of Combat Focus, one set of choices. Story chapter and mission trophies are not flagged — they pop by playing the story.</p>
-        <p>Rule of thumb: do the missables before the final cleanup, and save first where the game allows it.</p>
-      </aside>
-    </div>
+  <section id="tab-missables" aria-label="Missable trophies">
+    <p class="section-intro">Nine trophies need a second look. One is possibly missable, two are disputed between the guides, and six carry a one-time-window claim that no guide read here could verify. Everything else — 46 trophies — is safe after the credits.</p>
+    <div id="missables-list"></div>
   </section>
 
-  <section data-view="planner" class="hidden">
-    <div class="layout">
-      <div class="panel nextup">
-        <h2>Next up — your planner</h2>
-        <p>The five most useful trophies to chase next, in order: missable trophies first, then the next story trophies, then the nearest count and collectible goals.</p>
-        <div id="planner-list"></div>
-      </div>
-      <aside class="panel">
-        <h2>Long counts to start early</h2>
-        <p>250 Stunts · 100 WAiNK locations · 100 vehicles · 52 areas of Leonida · 50 Challenges · $250,000 laundered · $100,000 spent. These grow while you play — start them on day one and let the tracker count them.</p>
-      </aside>
-    </div>
+  <section id="tab-planner" aria-label="Next up">
+    <div id="planner-list"></div>
   </section>
 
-  <section data-view="settings" class="hidden">
-    <div class="layout">
-      <div class="panel">
-        <h2>Settings &amp; save</h2>
-        <div class="settings-grid">
-          <p class="muted">Your progress, notes and counters are stored only in this browser (localStorage). Export a backup file before clearing browser data, and import it back here.</p>
-          <div>
-            <button id="export-btn" type="button" class="primary">Export save file</button>
-            <span class="muted">Downloads sunset-platinum-save.json</span>
-          </div>
-          <div>
-            <label for="import-file">Import save file</label>
-            <input type="file" id="import-file" accept="application/json,.json">
-            <span class="muted" id="import-status"></span>
-          </div>
-          <div>
-            <button id="reset-btn" type="button">Clear all progress</button>
-            <span class="muted">Removes earned trophies, notes and counters. Your theme and spoiler settings stay.</span>
-          </div>
-          <p class="muted">Sources for every guide: the Exophase GTA VI trophy list and the PSNProfiles GTA VI trophy list, linked beside each trophy's guide. The app itself fetches nothing and works with the network off.</p>
-        </div>
-      </div>
+  <section id="tab-sources" aria-label="Sources">
+    <p class="section-intro">Every numbered step in this guide cites the source it comes from. Names, descriptions and grades are the official PSN list, checked against Exophase and PSNProfiles. All sources were read on 20 Nov 2026.</p>
+    <div id="source-matrix"></div>
+  </section>
+
+  <section id="tab-settings" aria-label="Settings and save">
+    <h3>Your save</h3>
+    <p id="storage-info"></p>
+    <div class="settings-actions">
+      <button type="button" class="btn" data-action="export">Export save (JSON)</button>
+      <button type="button" class="btn" data-action="import">Import save (JSON)</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+      <button type="button" class="btn btn-danger" data-action="reset">Reset progress</button>
     </div>
+    <h3>About the sources</h3>
+    <p>Guides disagree with each other in nine places, and two trophy triggers are not known at all. This guide shows both versions wherever the sources disagree, and says plainly where a trigger is unknown, rather than inventing a method. Wording throughout is our own; trophy names and official descriptions are quoted as published.</p>
   </section>
 </main>
 
-<footer>
-  <p>Sunset Platinum — an unofficial fan-made guide and tracker for Grand Theft Auto VI trophies on PlayStation 5. Not affiliated with Rockstar Games or PlayStation. Trophy names and descriptions are PlayStation's official list; guides are written in our own words and cite their sources.</p>
+<footer class="site-footer">
+  <p>Unofficial fan-made guide. Not affiliated with Rockstar Games, Sony, or any of the sources cited. Grand Theft Auto, GTA and Rockstar Games are trademarks of their respective owners. All guide wording is our own; trophy names and official descriptions are quoted as published on PSN.</p>
 </footer>
+
 <script type="module" src="app.js"></script>
 </body>
 </html>

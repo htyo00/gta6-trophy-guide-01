@@ -1,176 +1,206 @@
-/* Sunset Platinum — app boot and wiring.
-   Loads the trophy data, restores the saved state, and wires every control.
-   The app fetches only its own data/trophies.json and makes no other request. */
-
+// Sunset Platinum — main module. Wires the data, the saved state and the views.
+import data from './data/trophies.json' with { type: 'json' };
 import {
   loadState,
   saveState,
-  toggleEarned,
-  setNote,
-  setCount,
-  setSetting,
   exportState,
-  importStateText,
-  seedDemoProgress,
-} from "./store.js";
+  importState,
+  resetState,
+  stateSizeBytes,
+  STORAGE_KEY,
+} from './store.js';
 import {
   KIND_LABELS,
-  renderTrophyRow,
+  computeAudit,
+  renderAuditStrip,
+  renderTrophyList,
   renderDetail,
   renderRoadmap,
   renderMissables,
   renderPlanner,
-  renderProgress,
+  renderSourceMatrix,
   trophyMatches,
-} from "./views.js";
+} from './views.js';
 
-const state = loadState();
-let trophies = [];
-let selectedId = null;
-const filters = { q: "", kind: "all", grade: "all", only: "all" };
+const TABS = ['tracker', 'roadmap', 'missables', 'planner', 'sources', 'settings'];
 
-function applyTheme() {
-  document.documentElement.dataset.theme = state.settings.theme || "paper";
-  const btn = document.getElementById("theme-toggle");
-  btn.textContent = state.settings.theme === "night" ? "Paper theme" : "Night theme";
+let state = loadState();
+let selectedId = 28;
+let currentTab = 'tracker';
+const filters = { kind: 'all', grade: 'all', only: 'all', q: '' };
+
+const $ = (id) => document.getElementById(id);
+
+function filteredList() {
+  return data.trophies.filter((t) => trophyMatches(t, filters, state));
+}
+
+function renderProgress() {
+  const earned = data.trophies.filter((t) => state.earned[t.id]);
+  $('progress-text').textContent = `${earned.length} of ${data.trophies.length} trophies earned`;
+  $('progress-fill').style.width = `${Math.round((earned.length / data.trophies.length) * 100)}%`;
+  const grades = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
+  earned.forEach((t) => { grades[t.grade] += 1; });
+  $('grade-counts').textContent =
+    `Platinum ${grades.platinum}/1 · Gold ${grades.gold}/2 · Silver ${grades.silver}/6 · Bronze ${grades.bronze}/46`;
+}
+
+function renderList() {
+  const list = filteredList();
+  $('trophy-list').innerHTML = renderTrophyList(data, state, filters, selectedId);
+  $('result-count').textContent = `${list.length} of ${data.trophies.length} trophies`;
+}
+
+function renderDetailPanel() {
+  $('trophy-detail').innerHTML = renderDetail(data, state, selectedId);
 }
 
 function renderAll() {
-  renderProgress(trophies, state);
-  const list = document.getElementById("trophy-list");
-  list.innerHTML = "";
-  const shown = trophies.filter((t) => trophyMatches(t, filters, state));
-  for (const t of shown) {
-    const row = renderTrophyRow(t, state, selectedId);
-    row.addEventListener("click", () => {
-      selectedId = t.id;
-      renderAll();
-      document.getElementById("detail").scrollIntoView({ block: "nearest" });
-    });
-    const box = row.querySelector('input[type="checkbox"]');
-    box.addEventListener("change", () => {
-      toggleEarned(state, t.id);
-      renderAll();
-    });
-    list.appendChild(row);
-  }
-  document.getElementById("result-count").textContent =
-    shown.length + " of " + trophies.length + " trophies shown";
-  const selected = trophies.find((t) => t.id === selectedId) || trophies[0] || null;
-  renderDetail(selected, state);
-  renderRoadmap(trophies, state);
-  renderMissables(trophies, state);
-  renderPlanner(trophies, state);
-  document.getElementById("spoiler-toggle").checked = !!state.settings.spoiler;
-  document.getElementById("spoiler-note").textContent = state.settings.spoiler
-    ? "Spoilers on: story trophy names and descriptions stay hidden until earned."
-    : "Spoilers off: every name and description is visible.";
-  wireDetailInputs();
+  document.documentElement.dataset.theme = state.settings.theme;
+  $('theme-toggle').textContent = state.settings.theme === 'night' ? 'Paper theme' : 'Night theme';
+  $('filter-spoiler').checked = state.settings.spoiler;
+  renderProgress();
+  $('audit-strip').innerHTML = renderAuditStrip(data, state);
+  renderList();
+  renderDetailPanel();
+  $('roadmap-list').innerHTML = renderRoadmap(data, state);
+  $('missables-list').innerHTML = renderMissables(data, state);
+  $('planner-list').innerHTML = renderPlanner(data, state);
+  $('source-matrix').innerHTML = renderSourceMatrix(data);
+  $('storage-info').textContent =
+    `Saved under key ${STORAGE_KEY} in this browser's localStorage. Current saved state: ${stateSizeBytes(state)} bytes.`;
+  document.querySelectorAll('[data-tab]').forEach((button) => {
+    const active = button.dataset.tab === currentTab;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  TABS.forEach((tab) => {
+    $(`tab-${tab}`).hidden = tab !== currentTab;
+  });
 }
 
-function wireDetailInputs() {
-  const note = document.querySelector("#detail textarea[data-note-for]");
-  if (note) {
-    note.addEventListener("change", () => {
-      setNote(state, Number(note.dataset.noteFor), note.value.trim());
-      renderProgress(trophies, state);
-      renderAll();
-    });
-  }
-  const counter = document.querySelector('#detail input[type="number"][data-count-for]');
-  if (counter) {
-    counter.addEventListener("change", () => {
-      setCount(state, Number(counter.dataset.countFor), counter.value);
-      renderAll();
-    });
-  }
-}
-
-function showTab(name) {
-  for (const tab of document.querySelectorAll(".tabs button")) {
-    tab.classList.toggle("active", tab.dataset.tab === name);
-    tab.setAttribute("aria-pressed", tab.dataset.tab === name ? "true" : "false");
-  }
-  for (const section of document.querySelectorAll("[data-view]")) {
-    section.classList.toggle("hidden", section.dataset.view !== name);
-  }
-}
-
-function download(filename, text) {
-  const blob = new Blob([text], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-async function boot() {
-  const res = await fetch("data/trophies.json");
-  const data = await res.json();
-  trophies = data.trophies || data;
-  trophies.sort((a, b) => a.id - b.id);
-  if (new URLSearchParams(location.search).get("seed") === "1" && Object.keys(state.earned).length === 0) {
-    seedDemoProgress(state);
-  }
-  if (!selectedId) selectedId = trophies.length ? trophies[0].id : null;
-  applyTheme();
-  document.getElementById("theme-toggle").addEventListener("click", () => {
-    setSetting(state, "theme", state.settings.theme === "night" ? "paper" : "night");
-    applyTheme();
-  });
-  document.getElementById("search").addEventListener("input", (ev) => {
-    filters.q = ev.target.value;
-    renderAll();
-  });
-  document.getElementById("kind-filter").addEventListener("change", (ev) => {
-    filters.kind = ev.target.value;
-    renderAll();
-  });
-  document.getElementById("grade-filter").addEventListener("change", (ev) => {
-    filters.grade = ev.target.value;
-    renderAll();
-  });
-  document.getElementById("only-filter").addEventListener("change", (ev) => {
-    filters.only = ev.target.value;
-    renderAll();
-  });
-  document.getElementById("spoiler-toggle").addEventListener("change", (ev) => {
-    setSetting(state, "spoiler", ev.target.checked);
-    renderAll();
-  });
-  for (const tab of document.querySelectorAll(".tabs button")) {
-    tab.addEventListener("click", () => showTab(tab.dataset.tab));
-  }
-  document.getElementById("export-btn").addEventListener("click", () => {
-    download("sunset-platinum-save.json", exportState(state));
-  });
-  document.getElementById("import-file").addEventListener("change", async (ev) => {
-    const file = ev.target.files && ev.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const next = importStateText(text);
-      Object.assign(state, next);
-      saveState(state);
-      applyTheme();
-      renderAll();
-      document.getElementById("import-status").textContent = "Save imported.";
-    } catch (err) {
-      document.getElementById("import-status").textContent = "That file is not a Sunset Platinum save.";
-    }
-    ev.target.value = "";
-  });
-  document.getElementById("reset-btn").addEventListener("click", () => {
-    if (!window.confirm("Clear all earned trophies, notes and counters?")) return;
-    const fresh = { earned: {}, notes: {}, counts: {}, settings: state.settings };
-    Object.assign(state, fresh);
-    saveState(state);
-    selectedId = trophies.length ? trophies[0].id : null;
-    renderAll();
-  });
+function switchTab(tab) {
+  if (!TABS.includes(tab)) return;
+  currentTab = tab;
   renderAll();
+  if (history.replaceState) history.replaceState(null, '', `#${tab}`);
 }
 
-boot();
+function clampCount(trophy, value) {
+  if (!trophy || !trophy.target) return 0;
+  const n = Number.isFinite(value) ? Math.floor(value) : 0;
+  return Math.max(0, Math.min(trophy.target, n));
+}
+
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('[data-action]');
+  if (!target) return;
+  const action = target.dataset.action;
+  const id = Number(target.dataset.id || 0);
+  if (action === 'select' && id) {
+    selectedId = id;
+    if (target.dataset.goto) switchTab(target.dataset.goto);
+    else renderAll();
+  } else if (action === 'toggle-earned' && id) {
+    state.earned[id] = !state.earned[id];
+    if (state.earned[id]) delete state.revealed[id];
+    saveState(state);
+    renderAll();
+  } else if (action === 'reveal' && id) {
+    state.revealed[id] = true;
+    saveState(state);
+    renderAll();
+  } else if (action === 'count-dec' && id) {
+    const trophy = data.trophies.find((t) => t.id === id);
+    state.counts[id] = clampCount(trophy, (state.counts[id] || 0) - 1);
+    saveState(state);
+    renderAll();
+  } else if (action === 'count-inc' && id) {
+    const trophy = data.trophies.find((t) => t.id === id);
+    state.counts[id] = clampCount(trophy, (state.counts[id] || 0) + 1);
+    saveState(state);
+    renderAll();
+  } else if (action === 'tab') {
+    switchTab(target.dataset.tab);
+  } else if (action === 'goto-sources') {
+    event.preventDefault();
+    switchTab('sources');
+  } else if (action === 'theme-toggle') {
+    state.settings.theme = state.settings.theme === 'night' ? 'paper' : 'night';
+    saveState(state);
+    renderAll();
+  } else if (action === 'export') {
+    const blob = new Blob([exportState(state)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'sunset-platinum-save.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  } else if (action === 'import') {
+    $('import-file').click();
+  } else if (action === 'reset') {
+    if (window.confirm('Reset all earned trophies, counts, notes and settings?')) {
+      state = resetState();
+      selectedId = 28;
+      renderAll();
+    }
+  }
+});
+
+document.addEventListener('input', (event) => {
+  const target = event.target;
+  if (target.id === 'filter-search') {
+    filters.q = target.value;
+    renderList();
+  } else if (target.matches('[data-note-id]')) {
+    state.notes[Number(target.dataset.noteId)] = target.value;
+    saveState(state);
+  } else if (target.matches('[data-count-id]')) {
+    const id = Number(target.dataset.countId);
+    const trophy = data.trophies.find((t) => t.id === id);
+    state.counts[id] = clampCount(trophy, Number(target.value));
+    saveState(state);
+    renderProgress();
+    $('audit-strip').innerHTML = renderAuditStrip(data, state);
+  }
+});
+
+document.addEventListener('change', (event) => {
+  const target = event.target;
+  if (target.id === 'filter-kind') {
+    filters.kind = target.value;
+    renderList();
+  } else if (target.id === 'filter-grade') {
+    filters.grade = target.value;
+    renderList();
+  } else if (target.id === 'filter-only') {
+    filters.only = target.value;
+    renderList();
+  } else if (target.id === 'filter-spoiler') {
+    state.settings.spoiler = target.checked;
+    saveState(state);
+    renderAll();
+  } else if (target.id === 'import-file' && target.files && target.files[0]) {
+    const file = target.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        state = importState(String(reader.result));
+        saveState(state);
+        renderAll();
+        window.alert('Save imported.');
+      } catch (error) {
+        window.alert(`Import failed: ${error.message}`);
+      }
+      target.value = '';
+    };
+    reader.readAsText(file);
+  }
+});
+
+// Deep-link a tab from the URL hash, e.g. app/index.html#roadmap.
+const initialTab = (location.hash || '').slice(1);
+if (TABS.includes(initialTab)) currentTab = initialTab;
+
+renderAll();

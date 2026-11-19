@@ -1,101 +1,78 @@
-/* Sunset Platinum — save store.
-   Progress, notes, counters and settings live in localStorage only.
-   Nothing here touches the network. */
+// Sunset Platinum — saved state (localStorage only, no account, no network).
+export const STORAGE_KEY = 'sunset-platinum.v3';
 
-export const STORE_KEY = "sunset-platinum-v1";
-
-/* The thirteen trophies the demo screenshots start earned with. */
-export const SEED_EARNED = [2, 3, 4, 8, 10, 15, 21, 35, 44, 46, 51, 53, 55];
-
-export function blankState() {
+export function defaultState() {
   return {
     earned: {},
     notes: {},
     counts: {},
-    settings: { spoiler: true, theme: "paper" },
+    revealed: {},
+    settings: { spoiler: true, theme: 'paper', onlyUnearned: false },
   };
 }
 
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 export function loadState() {
+  const state = defaultState();
   try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return blankState();
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return state;
     const parsed = JSON.parse(raw);
-    const base = blankState();
-    return {
-      earned: parsed.earned || base.earned,
-      notes: parsed.notes || base.notes,
-      counts: parsed.counts || base.counts,
-      settings: { ...base.settings, ...(parsed.settings || {}) },
-    };
-  } catch (err) {
-    return blankState();
+    if (!isPlainObject(parsed)) return state;
+    for (const key of ['earned', 'notes', 'counts', 'revealed']) {
+      if (isPlainObject(parsed[key])) state[key] = parsed[key];
+    }
+    if (isPlainObject(parsed.settings)) {
+      state.settings = { ...state.settings, ...parsed.settings };
+    }
+    return state;
+  } catch {
+    return state;
   }
 }
 
 export function saveState(state) {
-  localStorage.setItem(STORE_KEY, JSON.stringify(state));
-}
-
-export function toggleEarned(state, id) {
-  if (state.earned[id]) delete state.earned[id];
-  else state.earned[id] = true;
-  saveState(state);
-  return state;
-}
-
-export function setNote(state, id, text) {
-  if (text) state.notes[id] = text;
-  else delete state.notes[id];
-  saveState(state);
-  return state;
-}
-
-export function setCount(state, id, value) {
-  const n = Math.max(0, Math.floor(Number(value) || 0));
-  if (n > 0) state.counts[id] = n;
-  else delete state.counts[id];
-  saveState(state);
-  return state;
-}
-
-export function setSetting(state, key, value) {
-  state.settings[key] = value;
-  saveState(state);
-  return state;
-}
-
-export function earnedCount(state) {
-  return Object.keys(state.earned).length;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function exportState(state) {
-  return JSON.stringify(
-    { app: "sunset-platinum", version: 1, exportedAt: new Date().toISOString(), state },
-    null,
-    2
-  );
+  return JSON.stringify(state, null, 2);
 }
 
-export function importStateText(text) {
+export function importState(text) {
   const parsed = JSON.parse(text);
-  const inner = parsed && parsed.state ? parsed.state : parsed;
-  if (!inner || typeof inner !== "object") throw new Error("not a Sunset Platinum save file");
-  const base = blankState();
-  return {
-    earned: inner.earned || base.earned,
-    notes: inner.notes || base.notes,
-    counts: inner.counts || base.counts,
-    settings: { ...base.settings, ...(inner.settings || {}) },
-  };
+  if (!isPlainObject(parsed)) throw new Error('Import is not a JSON object.');
+  const state = defaultState();
+  for (const key of ['earned', 'notes', 'counts', 'revealed']) {
+    if (parsed[key] !== undefined && !isPlainObject(parsed[key])) {
+      throw new Error(`Import field "${key}" must be an object.`);
+    }
+    if (isPlainObject(parsed[key])) state[key] = parsed[key];
+  }
+  if (parsed.settings !== undefined) {
+    if (!isPlainObject(parsed.settings)) throw new Error('Import field "settings" must be an object.');
+    state.settings = { ...state.settings, ...parsed.settings };
+  }
+  return state;
 }
 
-export function seedDemoProgress(state) {
-  for (const id of SEED_EARNED) state.earned[id] = true;
-  state.counts[15] = 120;
-  state.counts[31] = 40;
-  state.counts[35] = 61;
-  state.counts[42] = 22;
-  saveState(state);
-  return state;
+export function resetState() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage may be unavailable; the fresh default is still returned.
+  }
+  return defaultState();
+}
+
+export function stateSizeBytes(state) {
+  return new TextEncoder().encode(JSON.stringify(state)).length;
 }
