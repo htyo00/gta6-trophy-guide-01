@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en" data-theme="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sunset Platinum — GTA 6 Trophy Guide &amp; Tracker</title>
+<meta name="description" content="A complete offline guide and tracker for all 55 Grand Theft Auto VI trophies on PlayStation 5: roadmap, missables, cited guides and saved progress.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1><span class="sun">Sunset</span> Platinum</h1>
+  <p class="tagline">The GTA 6 trophy guide &amp; tracker — all 55 trophies, roadmap to platinum, missables flagged, every guide cited.</p>
+  <button id="theme-toggle" type="button">Night theme</button>
+</header>
+
+<div class="progress-wrap" aria-live="polite">
+  <div class="progress-line">
+    <strong id="progress-text">0 / 55 trophies earned — 0% to platinum</strong>
+    <span class="muted">Progress saves in this browser (localStorage).</span>
+  </div>
+  <div class="progress-bar" role="progressbar" aria-label="Progress to platinum"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="grade-counts" id="grade-counts"></div>
+</div>
+
+<nav class="tabs" aria-label="Guide sections">
+  <button type="button" data-tab="tracker" class="active" aria-pressed="true">Tracker</button>
+  <button type="button" data-tab="roadmap" aria-pressed="false">Roadmap</button>
+  <button type="button" data-tab="missables" aria-pressed="false">Missables</button>
+  <button type="button" data-tab="planner" aria-pressed="false">Next up</button>
+  <button type="button" data-tab="settings" aria-pressed="false">Settings &amp; save</button>
+</nav>
+
+<div class="filters">
+  <input type="search" id="search" placeholder="Search trophies, e.g. stunt, vault, fishing…" aria-label="Search trophies">
+  <select id="kind-filter" aria-label="Filter by kind">
+    <option value="all">All kinds</option>
+    <option value="story">Story</option>
+    <option value="missable">Missable</option>
+    <option value="collectibles">Collectibles</option>
+    <option value="activities">Activities</option>
+    <option value="online">Online</option>
+  </select>
+  <select id="grade-filter" aria-label="Filter by grade">
+    <option value="all">All grades</option>
+    <option value="platinum">Platinum</option>
+    <option value="gold">Gold</option>
+    <option value="silver">Silver</option>
+    <option value="bronze">Bronze</option>
+  </select>
+  <select id="only-filter" aria-label="Show only">
+    <option value="all">Show all</option>
+    <option value="missing">Not earned yet</option>
+    <option value="earned">Earned</option>
+    <option value="missable">Missable only</option>
+  </select>
+  <label><input type="checkbox" id="spoiler-toggle" checked> Hide story spoilers</label>
+  <span class="filter-note" id="result-count"></span>
+</div>
+
+<main>
+  <section data-view="tracker">
+    <div class="layout">
+      <div>
+        <p class="muted" id="spoiler-note">Spoilers on: story trophy names and descriptions stay hidden until earned.</p>
+        <ul class="trophy-list" id="trophy-list"></ul>
+      </div>
+      <aside class="panel detail" id="detail" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section data-view="roadmap" class="hidden">
+    <div class="layout">
+      <div class="panel">
+        <h2>Roadmap to platinum</h2>
+        <p>Six stages, built from the official descriptions: story first, strands second, activities third, the one-shot feats before cleanup, then the long counts, then 100% Completion and the platinum. Counts come from the PSN trophy list (Exophase / PSNProfiles).</p>
+        <div id="roadmap-list"></div>
+      </div>
+      <aside class="panel">
+        <h2>How to read this guide</h2>
+        <p>Every trophy shows its official name, description and grade exactly as PlayStation publishes them, plus a guide in our own words and the sources beside it.</p>
+        <p>A guide that says a step “has not been checked in the game” means exactly that: the official description does not name it, and no sourced guide we cite confirms it. We would rather say so than invent a location or a mission name.</p>
+        <p>No online trophies are listed: the official list of 55 holds none under the online kind, so the Online filter is empty by design.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section data-view="missables" class="hidden">
+    <div class="layout">
+      <div class="panel">
+        <h2>Missable trophies</h2>
+        <div id="missable-list"></div>
+      </div>
+      <aside class="panel">
+        <h2>Why these are flagged</h2>
+        <p>A trophy is flagged missable when its official description describes a single clean attempt: one robbery without being seen, one escape, one use of Combat Focus, one set of choices. Story chapter and mission trophies are not flagged — they pop by playing the story.</p>
+        <p>Rule of thumb: do the missables before the final cleanup, and save first where the game allows it.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section data-view="planner" class="hidden">
+    <div class="layout">
+      <div class="panel nextup">
+        <h2>Next up — your planner</h2>
+        <p>The five most useful trophies to chase next, in order: missable trophies first, then the next story trophies, then the nearest count and collectible goals.</p>
+        <div id="planner-list"></div>
+      </div>
+      <aside class="panel">
+        <h2>Long counts to start early</h2>
+        <p>250 Stunts · 100 WAiNK locations · 100 vehicles · 52 areas of Leonida · 50 Challenges · $250,000 laundered · $100,000 spent. These grow while you play — start them on day one and let the tracker count them.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section data-view="settings" class="hidden">
+    <div class="layout">
+      <div class="panel">
+        <h2>Settings &amp; save</h2>
+        <div class="settings-grid">
+          <p class="muted">Your progress, notes and counters are stored only in this browser (localStorage). Export a backup file before clearing browser data, and import it back here.</p>
+          <div>
+            <button id="export-btn" type="button" class="primary">Export save file</button>
+            <span class="muted">Downloads sunset-platinum-save.json</span>
+          </div>
+          <div>
+            <label for="import-file">Import save file</label>
+            <input type="file" id="import-file" accept="application/json,.json">
+            <span class="muted" id="import-status"></span>
+          </div>
+          <div>
+            <button id="reset-btn" type="button">Clear all progress</button>
+            <span class="muted">Removes earned trophies, notes and counters. Your theme and spoiler settings stay.</span>
+          </div>
+          <p class="muted">Sources for every guide: the Exophase GTA VI trophy list and the PSNProfiles GTA VI trophy list, linked beside each trophy's guide. The app itself fetches nothing and works with the network off.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>Sunset Platinum — an unofficial fan-made guide and tracker for Grand Theft Auto VI trophies on PlayStation 5. Not affiliated with Rockstar Games or PlayStation. Trophy names and descriptions are PlayStation's official list; guides are written in our own words and cite their sources.</p>
+</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>
