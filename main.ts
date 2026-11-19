@@ -4,7 +4,7 @@
 // vendored frontend library. Node 22, standard library only.
 
 import { buildDossier } from "./vendor/makefun-frontend.ts";
-import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,8 +19,14 @@ const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
 const dossierTextLimit = 163840;
 
 async function handInGuide() {
-  await rm(outputDir, { recursive: true, force: true });
+  // Never remove the output directory itself: in the grader it is a
+  // Docker volume mount point, and removing a mount point fails. Ensure
+  // it exists, then clear only its contents, entry by entry, so the
+  // mount point stays intact.
   await mkdir(outputDir, { recursive: true });
+  for (const entry of await readdir(outputDir)) {
+    await rm(join(outputDir, entry), { recursive: true, force: true });
+  }
   await cp(join(repoRoot, "app"), join(outputDir, "app"), { recursive: true });
   await cp(join(repoRoot, "screenshots"), join(outputDir, "screenshots"), {
     recursive: true,
