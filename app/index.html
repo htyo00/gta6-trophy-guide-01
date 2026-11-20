@@ -13,7 +13,11 @@
     <h1>Sunset Platinum</h1>
     <p class="tagline">Every GTA VI trophy, with the receipts. 55 trophies · 1 playthrough · about 200 hours · 1 possibly missable.</p>
   </div>
-  <button type="button" class="btn" id="theme-toggle" data-action="theme-toggle">Night theme</button>
+  <div class="header-actions">
+    <button type="button" class="btn btn-primary" data-action="export">Export save (JSON)</button>
+    <button type="button" class="btn" data-action="import">Import save (JSON)</button>
+    <button type="button" class="btn" id="theme-toggle" data-action="theme-toggle">Night theme</button>
+  </div>
 </header>
 
 <section class="progress" aria-label="Your progress">
@@ -71,6 +75,7 @@
     <div class="tracker-layout">
       <div class="trophy-list" id="trophy-list" role="list"></div>
       <aside class="trophy-detail" id="trophy-detail" aria-label="Trophy detail"></aside>
+      <aside class="tracker-side" id="tracker-side" aria-label="Next up and sources"></aside>
     </div>
   </section>
 

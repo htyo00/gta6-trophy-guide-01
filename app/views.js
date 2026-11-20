@@ -139,24 +139,30 @@ export function computeAudit(data) {
 export function renderAuditStrip(data, state) {
   const a = computeAudit(data);
   const earned = data.trophies.filter((t) => state.earned[t.id]).length;
-  const items = [
-    `${a.total} official`,
+  const totalCites = data.trophies
+    .flatMap((t) => t.steps)
+    .reduce((n, s) => n + (s.cites || []).length, 0);
+  const cards = [
+    { big: `${a.total}/${a.total}`, small: 'official name, grade' },
+    { big: `${a.citedSteps}/${a.totalSteps}`, small: `steps cited · ${totalCites} cites` },
+    { big: `${a.disagree}`, small: 'disputes shown both ways' },
+    { big: `${a.sourcesRead}`, small: `sources read ${a.readDate}` },
+    { big: `${a.possibly}`, small: `possibly missable · ${a.disagree} disagree` },
+  ];
+  const cardsHtml = cards.map((c) => `<div class="stat-card"><b>${esc(c.big)}</b><span>${esc(c.small)}</span></div>`).join('');
+  const rest = [
     `${a.gradeCounts.platinum}P ${a.gradeCounts.gold}G ${a.gradeCounts.silver}S ${a.gradeCounts.bronze}B`,
     `${a.hidden} hidden`,
     `${a.gamerscore}G on Xbox`,
     `${a.guidesCiting}/${a.total} guides cite a source`,
-    `${a.citedSteps}/${a.totalSteps} steps cited`,
-    `${a.sourcesRead} sources read ${esc(a.readDate)}`,
-    `${a.possibly} possibly missable`,
     `${a.disputed} disputed`,
     `${a.watch} watch`,
     `${a.unconfirmed} trigger not known`,
     `${a.singleSource} single-source`,
-    `${a.disagree} disagree`,
     `${a.green} green · ${a.amber} amber`,
     `${earned}/${a.total} earned by you`,
   ];
-  return items.map((item) => `<span class="audit-item">${esc(item)}</span>`).join('');
+  return `<div class="stat-cards">${cardsHtml}</div><p class="audit-line">${rest.map((item) => esc(item)).join(' · ')}</p>`;
 }
 
 function missableChip(trophy) {
@@ -211,10 +217,19 @@ export function renderDetail(data, state, selectedId) {
   const count = state.counts[t.id] || 0;
   const note = state.notes[t.id] || '';
   const stepsHtml = t.steps.map((s, i) => `<li><span class="step-text">${esc(s.text)}</span> ${citesHtml(s)}</li>`).join('');
-  const sourcesHtml = t.sources.map((s) => {
-    const n = sourceNumberByName(data, s.name);
-    return `<li>[${n}] ${esc(s.name)} — <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a></li>`;
+  const sourcesHtml = t.sources.map((name) => {
+    const src = data.sources.find((s) => s.name.split(' - ')[0] === name)
+      || (name === 'Official list' ? data.sources.find((s) => s.n === 0) : undefined);
+    const n = src ? src.n : null;
+    const url = src && src.url ? src.url : '';
+    return `<li>[${n}] ${esc(name)}${url ? ` — <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>` : ''}</li>`;
   }).join('');
+  const citedNums = [...new Set(t.steps.flatMap((s) => s.cites || []))].sort((a, b) => a - b);
+  const citedNames = citedNums.map((n) => {
+    const src = data.sources.find((s) => s.n === n);
+    return src ? `[${n}] ${esc(src.name.split(' - ')[0])}` : `[${n}]`;
+  }).join(' · ');
+  const sourcesLineHtml = citedNums.length ? `<p class="detail-sources-line"><strong>SOURCES FOR THIS GUIDE:</strong> ${citedNames}</p>` : '';
   const counterHtml = t.target ? `<div class="counter-box">
       <div class="counter-head"><strong>YOUR COUNT</strong><span>${count} / ${t.target} ${esc(t.targetLabel || '')}</span></div>
       <div class="counter-controls">
@@ -233,6 +248,8 @@ export function renderDetail(data, state, selectedId) {
       </div>
       <div class="detail-tags">${gradeChip(t)}${missableChip(t)}</div>
     </div>
+    ${counterHtml}
+    ${sourcesLineHtml}
     <p class="official"><strong>Official description:</strong> ${esc(t.description)}</p>
     <p class="guide-short"><strong>IN SHORT:</strong> ${esc(t.guide)}</p>
     ${t.unconfirmed ? `<div class="box box-unconfirmed"><strong>TRIGGER NOT KNOWN.</strong> No guide read for this list has confirmed how this trophy unlocks. The step below says so plainly rather than inventing a method.</div>` : ''}
@@ -240,7 +257,6 @@ export function renderDetail(data, state, selectedId) {
     <ol class="steps">${stepsHtml}</ol>
     <div class="box box-missable"><strong>MISSABLE?</strong> ${esc(t.missableNote)}</div>
     ${t.disagreement ? `<div class="box box-disagree"><strong>SOURCES DISAGREE — BOTH VERSIONS SHOWN.</strong> ${esc(t.disagreement)}</div>` : ''}
-    ${counterHtml}
     <label class="note-label">Your note
       <textarea data-note-id="${t.id}" rows="2" placeholder="e.g. where you left off…">${esc(note)}</textarea>
     </label>
@@ -348,6 +364,31 @@ export function renderPlanner(data, state) {
   return `<p class="planner-summary"><strong>${earned} of ${data.trophies.length} earned · ${remaining.length} left.</strong> Next up, in roadmap order:</p>
     <p class="planner-warning">Do Positive Mental Attitude\u2019s balcony step before you finish Chapter 1 — it is the only step in this list that can disappear.</p>
     <ol class="planner-list">${rows}</ol>`;
+}
+
+export function renderTrackerSide(data, state, selectedId) {
+  const remaining = data.trophies
+    .filter((t) => !state.earned[t.id])
+    .sort((a, b) => (a.roadmap - b.roadmap) || (a.id - b.id));
+  const next = remaining.slice(0, 4);
+  const nextHtml = next.map((t) => `<li><button type="button" class="side-row" data-action="select" data-id="${t.id}">
+    <span class="side-stage">S${t.roadmap}</span>
+    <span class="side-name">${esc(displayName(t, state))}</span>
+  </button></li>`).join('');
+  const t = trophyById(data, selectedId);
+  let sourcesHtml = '';
+  if (t) {
+    const citedNums = [...new Set(t.steps.flatMap((s) => s.cites || []))].sort((a, b) => a - b);
+    const items = citedNums.map((n) => {
+      const src = data.sources.find((s) => s.n === n);
+      if (!src) return '';
+      const short = src.name.split(' - ')[0];
+      const rest = src.name.split(' - ').slice(1).join(' - ');
+      return `<li><b>[${n}] ${esc(short)}</b>${rest ? ` — ${esc(rest)}` : ''}</li>`;
+    }).join('');
+    sourcesHtml = `<h3>Sources for this guide · ${citedNums.length}</h3><ul class="side-sources">${items}</ul>`;
+  }
+  return `<h3>Next up · Roadmap order</h3><ol class="side-next">${nextHtml}</ol>${sourcesHtml}`;
 }
 
 export function renderSourceMatrix(data) {

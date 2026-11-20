@@ -1655,7 +1655,12 @@
       "missableNote": "Safe: nothing suggests it can be missed. Trigger not known: PowerPyx says only that it is believed to be related to the Payday Loans store from the prologue, and OutputLag lists it as no confirmed trigger yet.",
       "roadmap": 6,
       "guide": "Trigger not known. The only lead is a guess tied to the Payday Loans store from the prologue; do not treat it as a method.",
-      "steps": [],
+      "steps": [
+        {
+          "text": "No confirmed trigger yet, so do not follow any method for this trophy. PowerPyx, OutputLag, GTABase and KeenGamer all list it as unconfirmed; the only lead is a guess tying it to the Payday Loans store from the Prologue.",
+          "cites": [1, 2, 9, 3]
+        }
+      ],
       "target": null,
       "targetLabel": null,
       "target100": null,

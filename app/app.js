@@ -18,6 +18,7 @@ import {
   renderRoadmap,
   renderMissables,
   renderPlanner,
+  renderTrackerSide,
   renderSourceMatrix,
   trophyMatches,
 } from './views.js';
@@ -63,6 +64,7 @@ function renderAll() {
   $('audit-strip').innerHTML = renderAuditStrip(data, state);
   renderList();
   renderDetailPanel();
+  $('tracker-side').innerHTML = renderTrackerSide(data, state, selectedId);
   $('roadmap-list').innerHTML = renderRoadmap(data, state);
   $('missables-list').innerHTML = renderMissables(data, state);
   $('planner-list').innerHTML = renderPlanner(data, state);
